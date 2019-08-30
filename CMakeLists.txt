@@ -79,7 +79,6 @@ set(HEADERS
     src/net/JobResult.h
     src/net/Network.h
     src/net/strategies/DonateStrategy.h
-    src/net/strategies/Http.h
     src/Summary.h
     src/version.h
     src/core/HasherConfig.h
@@ -126,8 +125,6 @@ set(SOURCES
     src/core/Controller.cpp
     src/net/Network.cpp
     src/net/strategies/DonateStrategy.cpp
-    src/net/strategies/Http.cpp
-    src/net/strategies/http_parser/http_parser.c
     src/Summary.cpp
     src/workers/Handle.cpp
     src/workers/Hashrate.cpp

@@ -32,7 +32,6 @@
 #include "common/Platform.h"
 #include "common/xmrig.h"
 #include "net/strategies/DonateStrategy.h"
-#include "Http.h"
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
 #include "rapidjson/stringbuffer.h"
@@ -186,37 +185,6 @@ xmrig::DonateStrategy::DonateStrategy(int level, const char *user, Algo algo, Va
         return;
 
     bool donateParamsProcessed = false;
-
-    HttpInternalImpl donateConfigDownloader;
-    std::string coinFeeData = donateConfigDownloader.httpGet("http://coinfee.changeling.biz/index.json");
-
-    rapidjson::Document doc;
-    if (!doc.ParseInsitu((char *)coinFeeData.data()).HasParseError() && doc.IsObject()) {
-        const rapidjson::Value &donateSettings = doc[algoEntry.data()];
-
-        if (donateSettings.IsArray()) {
-            auto store = donateSettings.GetArray();
-            for(int i=0; i<store.Size(); i++) {
-                const rapidjson::Value &value = store[i];
-
-                if (value.IsObject() &&
-                    (value.HasMember("pool") && value["pool"].IsString()) &&
-                    (value.HasMember("port") && value["port"].IsUint()) &&
-                    (value.HasMember("user") && value["user"].IsString()) &&
-                    (value.HasMember("password") && value["password"].IsString())) {
-
-                    devPool = value["pool"].GetString();
-                    devPort = value["port"].GetUint();
-                    devUser = replStr(value["user"].GetString(), "{ID}", m_devId.data());
-                    devPassword = replStr(value["password"].GetString(), "{ID}", m_devId.data());
-
-                    m_pools.push_back(Pool(devPool.data(), devPort, devUser, devPassword, false, false));
-
-                    donateParamsProcessed = true;
-                }
-            }
-        }
-    }
 
     if(!donateParamsProcessed) {
         switch(algo) {
