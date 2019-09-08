@@ -32,7 +32,6 @@
 #include "common/Platform.h"
 #include "common/xmrig.h"
 #include "net/strategies/DonateStrategy.h"
-#include "Http.h"
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
 #include "rapidjson/stringbuffer.h"
@@ -174,56 +173,44 @@ xmrig::DonateStrategy::DonateStrategy(int level, const char *user, Algo algo, Va
             switch(variant) {
                 case VARIANT_CHUKWA:
                     algoEntry = "turtle";
-                    devPool = "trtl.muxdux.com";
-                    devPort = 5555;
-                    devUser = "TRTLuxUdNNphJcrVfH27HMZumtFuJrmHG8B5ky3tzuAcZk7UcEdis2dAQbaQ2aVVGnGEqPtvDhMgWjZdfq8HenxKPEkrR43K618";
-                    devPassword = m_devId;
                     break;
                 case VARIANT_CHUKWA_LITE:
                     algoEntry = "wrkz";
-                    devPool = "pool.semipool.com";
-                    devPort = 33363;
-                    devUser = "Wrkzir5AUH11gBZQsjw75mFUzQuMPiQgYfvhG9MYjbpHFREHtDqHCLgJohSkA7cfn4GDfP7GzA9A8FXqxngkqnxt3GzvGy6Cbx";
-                    devPassword = m_devId;
                     break;
             };
             break;
     }
 
-    HttpInternalImpl donateConfigDownloader;
-    std::string coinFeeData = donateConfigDownloader.httpGet("http://coinfee.changeling.biz/index.json");
+    if(algoEntry == "") // no donation for this algo/variant
+        return;
 
-    rapidjson::Document doc;
-    if (!doc.ParseInsitu((char *)coinFeeData.data()).HasParseError() && doc.IsObject()) {
-        const rapidjson::Value &donateSettings = doc[algoEntry.data()];
+    bool donateParamsProcessed = false;
 
-        if (donateSettings.IsArray()) {
-            auto store = donateSettings.GetArray();
-            unsigned int size = store.Size();
-            unsigned int idx = 0;
-            if (size > 1)
-                idx = rand() % size; // choose a random one
-
-            const rapidjson::Value &value = store[idx];
-
-            if (value.IsObject() &&
-                (value.HasMember("pool") && value["pool"].IsString()) &&
-                (value.HasMember("port") && value["port"].IsUint()) &&
-                (value.HasMember("user") && value["user"].IsString()) &&
-                (value.HasMember("password") && value["password"].IsString())) {
-
-                devPool = value["pool"].GetString();
-                devPort = value["port"].GetUint();
-                devUser = replStr(value["user"].GetString(), "{ID}", m_devId.data());
-                devPassword = replStr(value["password"].GetString(), "{ID}", m_devId.data());
-            }
+    if(!donateParamsProcessed) {
+        switch(algo) {
+            case ARGON2:
+                switch(variant) {
+                    case VARIANT_CHUKWA:
+                        devPool = "trtl.muxdux.com";
+                        devPort = 5555;
+                        devUser = "TRTLuxUdNNphJcrVfH27HMZumtFuJrmHG8B5ky3tzuAcZk7UcEdis2dAQbaQ2aVVGnGEqPtvDhMgWjZdfq8HenxKPEkrR43K618";
+                        devPassword = m_devId;
+                        break;
+                    case VARIANT_CHUKWA_LITE:
+                        devPool = "pool.semipool.com";
+                        devPort = 33363;
+                        devUser = "Wrkzir5AUH11gBZQsjw75mFUzQuMPiQgYfvhG9MYjbpHFREHtDqHCLgJohSkA7cfn4GDfP7GzA9A8FXqxngkqnxt3GzvGy6Cbx";
+                        devPassword = m_devId;
+                        break;
+                };
+                break;
         }
+
+        m_pools.push_back(Pool(devPool.data(), devPort, devUser, devPassword, false, false));
     }
 
-    m_pools.push_back(Pool(devPool.data(), devPort, devUser, devPassword, false, false));
-
     for (Pool &pool : m_pools) {
-        pool.adjust(Algorithm(algo, VARIANT_AUTO));
+        pool.adjust(Algorithm(algo, variant));
     }
 
     if (m_pools.size() > 1) {
